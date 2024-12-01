@@ -21,7 +21,7 @@ resource "random_integer" "ri" {
 
 resource "azurerm_resource_group" "arg" {
   name     = "TaskBoardApp-arg-${random_integer.ri.result}"
-  location = "West Europe"
+  location = "Italy North"
 }
 
 resource "azurerm_service_plan" "aasp" {
@@ -69,14 +69,23 @@ resource "azurerm_mssql_database" "mssqldatabase" {
   license_type = "LicenseIncluded"
   max_size_gb  = 2
   sku_name     = "S0"
-  zone_redundant = true
+  zone_redundant = false
 }
 
-resource "azurerm_app_service_source_control" "example" {
+resource "azurerm_mssql_firewall_rule" "firewall" {
+  name             = "FirewallRule"
+  server_id        = azurerm_mssql_server.mssqlserver.id
+  start_ip_address = "0.0.0.0"
+  end_ip_address   = "0.0.0.0"
+}
+
+resource "azurerm_app_service_source_control" "github" {
   app_id   = azurerm_linux_web_app.alwa.id
   repo_url = "https://github.com/dimosoftuni/Azure-Web-App-with-Database-TaskBoard"
   branch   = "main"
   #   If the repo is not mine, I need to provide this:
   use_manual_integration = true
 }
+
+
 
