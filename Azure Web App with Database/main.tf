@@ -21,7 +21,7 @@ resource "random_integer" "ri" {
 
 resource "azurerm_resource_group" "arg" {
   name     = "TaskBoardApp-arg-${random_integer.ri.result}"
-  location = "Italy North"
+  location = "North Europe"
 }
 
 resource "azurerm_service_plan" "aasp" {
@@ -32,25 +32,7 @@ resource "azurerm_service_plan" "aasp" {
   sku_name            = "F1"
 }
 
-resource "azurerm_linux_web_app" "alwa" {
-  name                = "TaskBoardApp-alwa-${random_integer.ri.result}"
-  resource_group_name = azurerm_resource_group.arg.name
-  location            = azurerm_service_plan.aasp.location
-  service_plan_id     = azurerm_service_plan.aasp.id
 
-  site_config {
-    application_stack {
-      dotnet_version = "6.0"
-    }
-    always_on = false
-  }
-
-  connection_string {
-    name  = "DefaultConnection"
-    type  = "SQLAzure"
-    value = "Data Source=tcp:${azurerm_mssql_server.mssqlserver.fully_qualified_domain_name},1433;Initial Catalog=${azurerm_mssql_database.mssqldatabase.name};User ID=${azurerm_mssql_server.mssqlserver.administrator_login};Password=${azurerm_mssql_server.mssqlserver.administrator_login_password};Trusted_Connection=False; MultipleActiveResultSets=True;"
-  }
-}
 
 resource "azurerm_mssql_server" "mssqlserver" {
   name                         = "taskboardmssqlserver"
@@ -70,6 +52,30 @@ resource "azurerm_mssql_database" "mssqldatabase" {
   max_size_gb  = 2
   sku_name     = "S0"
   zone_redundant = false
+}
+
+resource "azurerm_linux_web_app" "alwa" {
+    depends_on = [
+    azurerm_mssql_server.mssqlserver,
+    azurerm_mssql_database.mssqldatabase
+  ]
+  name                = "TaskBoardApp-alwa-${random_integer.ri.result}"
+  resource_group_name = azurerm_resource_group.arg.name
+  location            = azurerm_service_plan.aasp.location
+  service_plan_id     = azurerm_service_plan.aasp.id
+
+  site_config {
+    application_stack {
+      dotnet_version = "6.0"
+    }
+    always_on = false
+  }
+
+  connection_string {
+    name  = "DefaultConnection"
+    type  = "SQLAzure"
+    value = "Data Source=tcp:${azurerm_mssql_server.mssqlserver.fully_qualified_domain_name},1433;Initial Catalog=${azurerm_mssql_database.mssqldatabase.name};User ID=${azurerm_mssql_server.mssqlserver.administrator_login};Password=${azurerm_mssql_server.mssqlserver.administrator_login_password};Trusted_Connection=False; MultipleActiveResultSets=True;"
+  }
 }
 
 resource "azurerm_mssql_firewall_rule" "firewall" {
