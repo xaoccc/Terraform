@@ -20,12 +20,12 @@ resource "random_integer" "ri" {
 }
 
 resource "azurerm_resource_group" "arg" {
-  name     = "TaskBoardApp-arg-${random_integer.ri.result}"
-  location = "North Europe"
+  name     = "${var.resource_group_name}-${random_integer.ri.result}"
+  location = var.resource_group_location
 }
 
 resource "azurerm_service_plan" "aasp" {
-  name                = "TaskBoardApp-aasp-${random_integer.ri.result}"
+  name                = "${var.service_plan_name}-${random_integer.ri.result}"
   resource_group_name = azurerm_resource_group.arg.name
   location            = azurerm_resource_group.arg.location
   os_type             = "Linux"
@@ -35,31 +35,31 @@ resource "azurerm_service_plan" "aasp" {
 
 
 resource "azurerm_mssql_server" "mssqlserver" {
-  name                         = "taskboardmssqlserver"
+  name                         = var.sql_server_name
   resource_group_name          = azurerm_resource_group.arg.name
   location                     = azurerm_resource_group.arg.location
   version                      = "12.0"
-  administrator_login          = "4dm1n157r470r"
-  administrator_login_password = "4-v3ry-53cr37-p455w0rd"
+  administrator_login          = var.sql_username
+  administrator_login_password = var.sql_password
 }
 
 
 resource "azurerm_mssql_database" "mssqldatabase" {
-  name         = "taskboard-db"
-  server_id    = azurerm_mssql_server.mssqlserver.id
-  collation    = "SQL_Latin1_General_CP1_CI_AS"
-  license_type = "LicenseIncluded"
-  max_size_gb  = 2
-  sku_name     = "S0"
+  name           = var.sql_database_name
+  server_id      = azurerm_mssql_server.mssqlserver.id
+  collation      = "SQL_Latin1_General_CP1_CI_AS"
+  license_type   = "LicenseIncluded"
+  max_size_gb    = 2
+  sku_name       = "S0"
   zone_redundant = false
 }
 
 resource "azurerm_linux_web_app" "alwa" {
-    depends_on = [
+  depends_on = [
     azurerm_mssql_server.mssqlserver,
     azurerm_mssql_database.mssqldatabase
   ]
-  name                = "TaskBoardApp-alwa-${random_integer.ri.result}"
+  name                = "${var.app_service_name}-${random_integer.ri.result}"
   resource_group_name = azurerm_resource_group.arg.name
   location            = azurerm_service_plan.aasp.location
   service_plan_id     = azurerm_service_plan.aasp.id
@@ -79,7 +79,7 @@ resource "azurerm_linux_web_app" "alwa" {
 }
 
 resource "azurerm_mssql_firewall_rule" "firewall" {
-  name             = "FirewallRule"
+  name             = var.firewall_rule_name
   server_id        = azurerm_mssql_server.mssqlserver.id
   start_ip_address = "0.0.0.0"
   end_ip_address   = "0.0.0.0"
@@ -87,7 +87,7 @@ resource "azurerm_mssql_firewall_rule" "firewall" {
 
 resource "azurerm_app_service_source_control" "github" {
   app_id   = azurerm_linux_web_app.alwa.id
-  repo_url = "https://github.com/dimosoftuni/Azure-Web-App-with-Database-TaskBoard"
+  repo_url = var.github_repo_url
   branch   = "main"
   #   If the repo is not mine, I need to provide this:
   use_manual_integration = true
